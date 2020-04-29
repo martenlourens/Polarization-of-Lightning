@@ -8,10 +8,6 @@ import scipy.signal as sg
 from matplotlib.pyplot import figure, show
 from mpl_toolkits.mplot3d import Axes3D
 
-#debugging imports
-import matplotlib.pyplot as plt
-from tqdm import tqdm
-
 
 
 
@@ -262,6 +258,8 @@ class stokes_plotter:
 			self.frame04.legend()
 
 		show()
+
+
 
 
 

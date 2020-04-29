@@ -9,7 +9,6 @@ from LoLIM.getTrace_fromLoc import getTrace_fromLoc
 
 #Python module imports
 import numpy as np
-import matplotlib.pyplot as plt
 from tqdm import tqdm, trange
 
 #Own module imports
@@ -61,11 +60,16 @@ trace_locator = getTrace_fromLoc(TBB_data, data_filters, station_timing_offsets)
 ###########################
 ##    SOURCE LOCATION    ##
 ###########################
-source_XYZT = np.array([-743.41, -3174.29, 4377.67, 1.1350323478]); srcName = 1477200
+#source_XYZT = np.array([-743.41, -3174.29, 4377.67, 1.1350323478]); srcName = 1477200
 #source_XYZT = np.array([247.86, -3555.45, 4779.61, 1.1051278583]); srcName = 1409503
 #source_XYZT = np.array([-1040.17, -2877.24, 4405.51, 1.1518796563]); srcName = 1515137
 #source_XYZT = np.array([-1594.76, -3307.02, 4339.72, 1.1386715757]); srcName = 1485269
 #source_XYZT = np.array([-1804.64, -2937.45, 4062.84, 1.1452615564]); srcName = 1500111
+
+
+#source_XYZT = np.array([246.96, -3558.95, 4785.46, 1.1107716958]); srcName = 1422213
+
+#source_XYZT = np.array([247.14, -3558.79, 4785.24, 1.1107717917]); srcName = 1422214
 
 tqdm.write("Processing pulse {}:".format(srcName))
 
@@ -76,9 +80,9 @@ width = 40 #set width of datablock
 cal = calibrate(timeID,width,verbose=False)
 
 stokes = stokes_params()
-stokes_plot = stokes_plotter(plot=['stokes','polarization_ellipse','poincare'])
+stokes_plot = stokes_plotter(plot=['stokes'])
 
-pbar1 = tqdm(sorted_snames, ascii=True, unit_scale=True, dynamic_ncols=True, position=0) 
+pbar1 = tqdm(["CS301"], ascii=True, unit_scale=True, dynamic_ncols=True, position=0) 
 for sname in pbar1: #sorted_snames
 	pbar1.set_description("Processing station {}".format(sname))
 
@@ -113,8 +117,6 @@ for sname in pbar1: #sorted_snames
 		PEVector.append(pol_ell_params)
 
 		stokes_plot.plot_stokes_parameters(S,antenna_names=[antenna_names_E[n],antenna_names_O[n]], width=[t_l,t_r])
-		stokes_plot.plot_polarization_ellipse(pol_ell_params)
-		stokes_plot.plot_poincare(S_avg)
 
 	pbar2.close()
 
