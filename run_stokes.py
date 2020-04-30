@@ -10,6 +10,7 @@ from LoLIM.getTrace_fromLoc import getTrace_fromLoc
 #Python module imports
 import numpy as np
 from tqdm import tqdm, trange
+import json
 
 #Own module imports
 from pulse_calibration import calibrate
@@ -57,23 +58,9 @@ sorted_snames = natural_sort(station_timing_offsets.keys())
 trace_locator = getTrace_fromLoc(TBB_data, data_filters, station_timing_offsets)
 
 
-###########################
-##    SOURCE LOCATION    ##
-###########################
-#source_XYZT = np.array([-743.41, -3174.29, 4377.67, 1.1350323478]); srcName = 1477200
-#source_XYZT = np.array([247.86, -3555.45, 4779.61, 1.1051278583]); srcName = 1409503
-#source_XYZT = np.array([-1040.17, -2877.24, 4405.51, 1.1518796563]); srcName = 1515137
-#source_XYZT = np.array([-1594.76, -3307.02, 4339.72, 1.1386715757]); srcName = 1485269
-#source_XYZT = np.array([-1804.64, -2937.45, 4062.84, 1.1452615564]); srcName = 1500111
-
-
-#source_XYZT = np.array([246.96, -3558.95, 4785.46, 1.1107716958]); srcName = 1422213
-
-#source_XYZT = np.array([247.14, -3558.79, 4785.24, 1.1107717917]); srcName = 1422214
-
-tqdm.write("Processing pulse {}:".format(srcName))
-
-sIO = save_polarization_data(timeID,srcName)
+#############################################
+##    IMPORT SOURCE INFO FROM JSON FILE    ##
+#############################################
 
 width = 40 #set width of datablock
 
@@ -82,54 +69,80 @@ cal = calibrate(timeID,width,verbose=False)
 stokes = stokes_params()
 stokes_plot = stokes_plotter(plot=['stokes'])
 
-pbar1 = tqdm(["CS301"], ascii=True, unit_scale=True, dynamic_ncols=True, position=0) 
-for sname in pbar1: #sorted_snames
-	pbar1.set_description("Processing station {}".format(sname))
+with open(processed_data_dir(timeID)+"/polarization_data/source_info.json", 'r') as f:
+	source_info = json.load(f)
 
-	sTBB_data = TBB_data[sname]
-	antenna_names_E = sTBB_data.get_antenna_names()[::2]
-	antenna_names_O = sTBB_data.get_antenna_names()[1::2]
-	antenna_locations = sTBB_data.get_LOFAR_centered_positions()[::2]
+#SIMPLE TEST PULSES
+#source_info = {'1477200': {'XYZT' : [-743.41, -3174.29, 4377.67, 1.1350323478]}}
+#source_info = {'1409503': {'XYZT' : [247.86, -3555.45, 4779.61, 1.1051278583]}}
+#source_info = {'1515137': {'XYZT' : [-1040.17, -2877.24, 4405.51, 1.1518796563]}}
+#source_info = {'1485269': {'XYZT' : [-1594.76, -3307.02, 4339.72, 1.1386715757]}}
+#source_info = {'1500111': {'XYZT' : [-1804.64, -2937.45, 4062.84, 1.1452615564]}}
 
-	sStokesVector = [] #station Stokes vector
-	PEVector = [] #station polarization ellipse vector
+#COMPLEX TEST PULSES
+#source_info = {'1422213': {'XYZT' : [246.96, -3558.95, 4785.46, 1.1107716958]}}
+source_info = {'1422214': {'XYZT' : [247.14, -3558.79, 4785.24, 1.1107717917]}}
 
-	pbar2 = trange(len(antenna_names_E), leave=False, ascii=True, unit_scale=True, dynamic_ncols=True) 
-	for n in pbar2:
-		pbar2.set_description("Processing antenna set {}/{}".format(antenna_names_E[n],antenna_names_O[n]))
+pbar = tqdm(source_info.keys(), ascii=True, unit_scale=True, dynamic_ncols=True, position=0)
+for ID in pbar:
+	source_XYZT = np.array(source_info[ID]['XYZT']); srcName = int(ID)
 
-		start_sample_E, total_time_offset_E, arrival_time_E, data_E = trace_locator.get_trace_fromLoc(source_XYZT, antenna_names_E[n], width, do_remove_RFI=True, do_remove_saturation=True)
-		start_sample_O, total_time_offset_O, arrival_time_O, data_O = trace_locator.get_trace_fromIndex(start_sample_E, antenna_names_O[n], width, do_remove_RFI=True, do_remove_saturation=True)
+	pbar.set_description("Processing pulse {}".format(srcName))
 
-		cal_data_az, cal_data_z = cal.run_calibration(source_XYZT[:3], data_E,data_O, antenna_names_E[n], antenna_locations[n], total_time_offset_E - total_time_offset_O)
+	sIO = save_polarization_data(timeID,srcName)
 
-		S = stokes.get_stokes_vector(cal_data_az,cal_data_z)
-		pulseWidth, t_l, t_r = stokes.get_pulseWidth()
-		if pulseWidth==0:
-			continue
+	pbar1 = tqdm(["CS301"], leave=False, ascii=True, unit_scale=True, dynamic_ncols=True, position=1) 
+	for sname in pbar1: #sorted_snames
+		pbar1.set_description("Processing station {}".format(sname))
 
-		S_avg = stokes.average_stokes_parameters(S)
-		sStokesVector.append(S_avg)
+		sTBB_data = TBB_data[sname]
+		antenna_names_E = sTBB_data.get_antenna_names()[::2]
+		antenna_names_O = sTBB_data.get_antenna_names()[1::2]
+		antenna_locations = sTBB_data.get_LOFAR_centered_positions()[::2]
 
-		stokes.get_dop()
+		sStokesVector = [] #station Stokes vector
+		PEVector = [] #station polarization ellipse vector
 
-		pol_ell_params = stokes.polarization_ellipse_parameters()
-		PEVector.append(pol_ell_params)
+		pbar2 = trange(len(antenna_names_E), leave=False, ascii=True, unit_scale=True, dynamic_ncols=True, position=2) 
+		for n in pbar2:
+			pbar2.set_description("Processing antenna set {}/{}".format(antenna_names_E[n],antenna_names_O[n]))
 
-		stokes_plot.plot_stokes_parameters(S,antenna_names=[antenna_names_E[n],antenna_names_O[n]], width=[t_l,t_r])
+			start_sample_E, total_time_offset_E, arrival_time_E, data_E = trace_locator.get_trace_fromLoc(source_XYZT, antenna_names_E[n], width, do_remove_RFI=True, do_remove_saturation=True)
+			start_sample_O, total_time_offset_O, arrival_time_O, data_O = trace_locator.get_trace_fromIndex(start_sample_E, antenna_names_O[n], width, do_remove_RFI=True, do_remove_saturation=True)
 
-	pbar2.close()
+			cal_data_az, cal_data_z = cal.run_calibration(source_XYZT[:3], data_E,data_O, antenna_names_E[n], antenna_locations[n], total_time_offset_E - total_time_offset_O)
 
-	if sStokesVector:
-		sStokesVector = np.array(sStokesVector)
-		PEVector = np.array(PEVector)
-		if sStokesVector.shape[0]>1: #we need more than one sample for a good estimate of the standard deviation
-			tqdm.write("Saving polarization data for station {}...".format(sname))
-			sIO.save_S(sname,np.average(sStokesVector,axis=0)[0],np.std(sStokesVector,axis=0,ddof=1)[0])
-			sIO.save_PE(sname,np.average(PEVector,axis=0)[0],np.std(PEVector,axis=0,ddof=1)[0])
-	else:
-		tqdm.write("Polarization data  of station {} will not be saved as less than two antennas have received a measurable signal.".format(sname))
+			S = stokes.get_stokes_vector(cal_data_az,cal_data_z)
+			pulseWidth, t_l, t_r = stokes.get_pulseWidth()
+			if pulseWidth==0:
+				continue
 
-pbar1.close()
-tqdm.write("Done.")
-stokes_plot.showPlots()
+			S_avg = stokes.average_stokes_parameters(S)
+			sStokesVector.append(S_avg)
+
+			stokes.get_dop()
+
+			pol_ell_params = stokes.polarization_ellipse_parameters()
+			PEVector.append(pol_ell_params)
+
+			stokes_plot.plot_stokes_parameters(S,antenna_names=[antenna_names_E[n],antenna_names_O[n]], width=[t_l,t_r])
+
+		pbar2.close()
+
+		if sStokesVector:
+			sStokesVector = np.array(sStokesVector)
+			PEVector = np.array(PEVector)
+			if sStokesVector.shape[0]>1: #we need more than one sample for a good estimate of the standard deviation
+				tqdm.write("Saving polarization data for station {}...".format(sname))
+				sIO.save_S(sname,np.average(sStokesVector,axis=0)[0],np.std(sStokesVector,axis=0,ddof=1)[0])
+				sIO.save_PE(sname,np.average(PEVector,axis=0)[0],np.std(PEVector,axis=0,ddof=1)[0])
+		else:
+			tqdm.write("Polarization data  of station {} will not be saved as less than two antennas have received a measurable signal.".format(sname))
+
+	pbar1.close()
+	tqdm.write("Done.")
+
+	stokes_plot.showPlots(legend=True)
+	break
+
+pbar.close()

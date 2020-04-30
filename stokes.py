@@ -29,7 +29,7 @@ class stokes_params:
 		
 		return self.S
 
-	def get_pulseWidth(self,f_hp=0.5,f_σ=2):
+	def get_pulseWidth(self,f_hp=0.5,f_σ=1):
 		R = 1 - f_hp
 
 		min_height = np.max(self.S[0])*0.25 #threshold is set to ~25% of the maximum height of a pulse in the dataset
@@ -41,7 +41,12 @@ class stokes_params:
 		
 		#filter out "central" peak (-2 is to compensate for the shift due to antenna response calibration)
 		dist_from_center = self.indices-(self.S[0].size//2 - 2)
-		sortIndices = [np.argmin(np.abs(dist_from_center))]
+
+		try:
+			sortIndices = [np.argmin(np.abs(dist_from_center))]
+		except:
+			return 0, 0, 0
+
 		if dist_from_center[sortIndices] >= -1 and dist_from_center[sortIndices] <= 1:
 			pass
 		else:
@@ -124,7 +129,7 @@ class stokes_params:
 		divisor = self.S_avg[selection][:,0]*self.δ[selection]
 		normalizedS = self.S_avg[selection]/divisor[:, np.newaxis]
 		ε = 0.5*np.arcsin(normalizedS[:,3])
-		τ = 0.5*np.arcsin(normalizedS[:,2]/np.cos(2*ε))
+		τ = 0.5*np.arctan(normalizedS[:,2]/normalizedS[:,1])
 
 		self.ell_params = np.array([S0,self.δ[selection],τ,ε]).T
 
@@ -250,12 +255,13 @@ class stokes_plotter:
 			VI = SI[3]
 			self.frame12.scatter(QI,UI,VI)
 
-	def showPlots(self):
-		if 'stokes' in self.plot:
-			self.frame01.legend()
-			self.frame02.legend()
-			self.frame03.legend()
-			self.frame04.legend()
+	def showPlots(self,legend=False):
+		if legend:
+			if 'stokes' in self.plot:
+				self.frame01.legend()
+				self.frame02.legend()
+				self.frame03.legend()
+				self.frame04.legend()
 
 		show()
 
