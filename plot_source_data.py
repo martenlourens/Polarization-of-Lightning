@@ -21,7 +21,9 @@ if __name__ == "__main__":
     bad_antennas = "bad_antennas.txt"
     additional_antenna_delays = "ant_delays.txt"
 
-    source_XYZT = np.array([-743.41, -3174.29, 4377.67, 1.1350323478]); srcName = 1477200
+    source_XYZT = np.array([-1729.1945820613234, -3584.8678788563016, 4342.110258968864, 1.112528427433408]); srcName = 1426315
+
+    #source_XYZT = np.array([-743.41, -3174.29, 4377.67, 1.1350323478]); srcName = 1477200
     #source_XYZT = np.array([247.86, -3555.45, 4779.61, 1.1051278583]); srcName = 1409503
     #source_XYZT = np.array([-1040.17, -2877.24, 4405.51, 1.1518796563]); srcName = 1515137
     #source_XYZT = np.array([-1594.76, -3307.02, 4339.72, 1.1386715757]); srcName = 1485269
