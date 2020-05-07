@@ -11,8 +11,8 @@ from LoLIM.main_plotter import gen_olaf_cmap
 
 
 
-def polPlot2D(station_loc, pulses_PE, source_info, ell_scale=2**50, ϕ_shift=False, cmap=None):
-	fig = figure(figsize=(20,10)) #Az : [-90,90] and Z : [0:90] => 2:1 ratio ensures we fill canvas properly
+def polPlot2D(station_loc, pulses_PE, source_info, ell_scale=2**50, ϕ_shift=False, cmap=None, errors=False):
+	fig = figure(figsize=(20,10),dpi=108) #Az : [-90,90] and Z : [0:90] => 2:1 ratio ensures we fill canvas properly
 	frame = fig.add_subplot(111, aspect='equal') #equal aspect ensures correct direction of polarization ellipse!
 
 	#setting up colormap
@@ -39,16 +39,62 @@ def polPlot2D(station_loc, pulses_PE, source_info, ell_scale=2**50, ϕ_shift=Fal
 			elif Az>0:
 				Az -= 90
 
-		#compute the ellipses
-		width = 2*pulses_PE[pulseID][0]*pulses_PE[pulseID][1]*np.cos(pulses_PE[pulseID][3])
+
+		#compute ellipse parameters
+		width = 2*pulses_PE[pulseID][0]*np.cos(pulses_PE[pulseID][3])
 		height = 2*pulses_PE[pulseID][0]*np.sin(pulses_PE[pulseID][3])
 		width *= ell_scale; height *= ell_scale
 		angle = pulses_PE[pulseID][2]
 
-		x, y = Ellipse((Az,Z),width,height,angle)
+		if errors:
+			#compute ellipse parameter errors
+			width_err = 2*np.sqrt((np.cos(pulses_PE[pulseID][3])*pulses_PE[pulseID][4])**2 + (pulses_PE[pulseID][0]*np.sin(pulses_PE[pulseID][3])*pulses_PE[pulseID][7])**2 - 2*pulses_PE[pulseID][0]*np.cos(pulses_PE[pulseID][3])*np.sin(pulses_PE[pulseID][3])*pulses_PE[pulseID][4]*pulses_PE[pulseID][7])
+			height_err = 2*np.sqrt((np.sin(pulses_PE[pulseID][3])*pulses_PE[pulseID][4])**2 + (pulses_PE[pulseID][0]*np.cos(pulses_PE[pulseID][3])*pulses_PE[pulseID][7])**2 + 2*pulses_PE[pulseID][0]*np.cos(pulses_PE[pulseID][3])*np.sin(pulses_PE[pulseID][3])*pulses_PE[pulseID][4]*pulses_PE[pulseID][7])
+			width_err *= ell_scale; height_err *= ell_scale
+			angle_err = pulses_PE[pulseID][6]
 
-		frame.plot(x, y, color=cmap(T[i]))
-		frame.scatter(Az, Z, s=3, marker='o', color=cmap(T[i]))
+			#compute error in position
+			x_err = np.sqrt(source_info[pulseID]['covXYZ'][0][0])
+			y_err = np.sqrt(source_info[pulseID]['covXYZ'][1][1])
+			z_err = np.sqrt(source_info[pulseID]['covXYZ'][2][2])
+			
+			rsq = np.dot(loc[:2],loc[:2])
+			#dϕ/dx
+			part_Az_x = -loc[1]/rsq
+			#dϕ/dy
+			part_Az_y = loc[0]/rsq
+
+			ρsq = np.dot(loc,loc)
+			#dθ_z/dx
+			part_Z_x = 1/ρsq*loc[0]*loc[2]/np.sqrt(rsq)
+			#dθ_z/dy
+			part_Z_y = 1/ρsq*loc[1]*loc[2]/np.sqrt(rsq)
+			#dθ_z/dz
+			part_Z_z = -np.sqrt(rsq)/ρsq
+
+			Az_err = (part_Az_x*x_err + part_Az_y*y_err)**2
+			Z_err = (part_Z_x*x_err + part_Z_y*y_err + part_Z_z*z_err)**2
+			
+			pos_err = (Az_err,Z_err)
+
+			#compute ellipse parametrization
+			r, r_err = Ellipse((Az,Z), width, height,angle, pos_err=pos_err, width_err=width_err, height_err=height_err, angle_err=angle_err)
+			
+			#plot the ellipses with errorbars
+			frame.errorbar(r[0], r[1], xerr=r_err[0], yerr=r_err[1], color=cmap(T[i]), linewidth=0.75, alpha=0.5, capsize=2, capthick=0.25, elinewidth=0.5, ecolor='k')
+			
+			#plot the pulses
+			frame.errorbar(Az, Z, xerr=Az_err, yerr=Z_err, markersize=1, marker='s', color=cmap(T[i]), alpha=0.75, capsize=2, capthick=0.25, elinewidth=0.5, ecolor='k')
+
+		else:
+			#compute ellipse parametrization
+			x, y = Ellipse((Az,Z),width,height,angle)
+
+			#plot the ellipses
+			frame.plot(x, y, color=cmap(T[i]), linewidth=0.75, alpha=0.75)
+		
+			#plot the pulses
+			frame.scatter(Az, Z, s=4, marker='s', edgecolor='k', linewidths=0.4, color=cmap(T[i]), alpha=0.75)
 
 	#flip zenithal axis such that overhead it actually up!
 	ylimits = frame.get_ylim()
@@ -73,8 +119,8 @@ def polPlot2D(station_loc, pulses_PE, source_info, ell_scale=2**50, ϕ_shift=Fal
 
 
 
-#function that returns datapoints forming an ellipse (patches.Ellipse does not work properly for our purposes)
-def Ellipse(pos,width,height,angle):
+#function that returns datapoints forming an Ellipse. (patches.Ellipse does not work properly for our purposes)
+def Ellipse(pos, width, height, angle, pos_err=None, width_err=None, height_err=None, angle_err=None):
 	t = np.linspace(0,2*np.pi,100)
 	x = np.array([width/2*np.cos(t),height/2*np.sin(t)])
 
@@ -83,4 +129,36 @@ def Ellipse(pos,width,height,angle):
 
 	x = np.matmul(R,x)
 	x = x + np.array([np.full_like(x[0],pos[0]),np.full_like(x[1],pos[1])])
+
+	if not None in [pos_err, width_err, height_err, angle_err]:
+
+		σ = np.array([width_err, height_err, angle_err, pos_err[0], pos_err[1]])
+		
+		#partials are initiated:
+		#dx/dwidth
+		part_width = np.matmul(R, np.array([1/2*np.cos(t),np.zeros(t.size)]))
+
+		#dx/dheight
+		part_height = np.matmul(R, np.array([np.zeros(t.size),1/2*np.sin(t)]))
+
+		#dx/dangle
+		#derivative of rotation matrix anti-clockwise
+		part_R = np.array([[-np.sin(angle), -np.cos(angle)], [np.cos(angle), -np.sin(angle)]])
+		part_angle = np.matmul(part_R, np.array([width/2*np.cos(t),height/2*np.sin(t)]))
+
+		#dx/dpos0
+		part_pos0 = np.array([np.ones(t.size),np.zeros(t.size)])
+
+		#dx/dpos1
+		part_pos1 = np.array([np.zeros(t.size),np.ones(t.size)])
+
+		parts = np.array([part_width, part_height, part_angle, part_pos0, part_pos1])
+
+		x_var = np.zeros((2, t.size))
+		for i in range(5):
+			for j in range(5):
+				x_var += np.multiply(parts[i]*σ[i], parts[j]*σ[j])
+
+		return x, np.sqrt(x_var)
+
 	return x

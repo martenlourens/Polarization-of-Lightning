@@ -12,7 +12,7 @@ utilities.default_processed_data_loc = "/home/student4/Marten/processed_files"
 processed_data_folder = processed_data_dir(timeID)
 
 header = read_header('iterMapper_50_CS002',  timeID)
-data = header.load_data_as_sources(maxRMS=2.5E-9) #DON'T FORGET TO CHECK THIS!!!
+data = header.load_data_as_sources(maxRMS=3E-9) #DON'T FORGET TO CHECK THIS!!!
 
 with open(processed_data_folder+"/polarization_data/pulseIDs.pkl", 'rb') as f:
 	pulseIDs = pickle.load(f)
