@@ -17,7 +17,7 @@ def dist_to_src(avg_source_XYZ, avg_station_XYZ):
 #function for computing the zenith angle to an average source location from an average station location
 def zenith_to_src(avg_source_XYZ, avg_station_XYZ, deg=True):
 	horiz, vert = dist_to_src(avg_source_XYZ, avg_station_XYZ)
-	Z = np.arctan(horiz/vert)
+	Z = np.arctan2(horiz, vert)
 	if deg:
 		return np.rad2deg(Z)
 	return Z

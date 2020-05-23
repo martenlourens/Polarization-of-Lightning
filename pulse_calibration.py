@@ -39,8 +39,8 @@ class calibrate:
 		if self.verbose: print("Applying antenna response calibration...")
 		#get the location of the source in zenith and azimuth angles
 		LFA = source_XYZ - ant_XYZ #LFA == Location From Antenna
-		Az = np.arctan(LFA[1] / LFA[0])
-		Z = np.arctan(np.dot(LFA[:2], LFA[:2])**0.5 / LFA[2])
+		Az = np.arctan2(LFA[1], LFA[0])
+		Z = np.arctan2(np.dot(LFA[:2], LFA[:2])**0.5, LFA[2])
 		#convert angles to degrees
 		Az = np.rad2deg(Az); Z = np.rad2deg(Z)
 		#multiply voltage data in frequency space with the inverse Jones' matrix obtaining Zenithal and Azimuthal electric fields in frequency space

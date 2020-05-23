@@ -46,11 +46,13 @@ class stokes_params:
 		try:
 			sortIndices = [np.argmin(np.abs(dist_from_center))]
 		except:
+			#print("Error [1]: Can't get pulse width!")
 			return 0, 0, 0
 
 		if dist_from_center[sortIndices] >= -1 and dist_from_center[sortIndices] <= 1:
 			pass
 		else:
+			#print("Error [2]: Can't get pulse width!")
 			return 0, 0, 0
 
 		self.indices = self.indices[sortIndices]
@@ -130,7 +132,7 @@ class stokes_params:
 		divisor = self.S_avg[selection][:,0]*self.δ[selection]
 		normalizedS = self.S_avg[selection]/divisor[:, np.newaxis]
 		ε = 0.5*np.arcsin(normalizedS[:,3])
-		τ = 0.5*np.arctan(normalizedS[:,2]/normalizedS[:,1])
+		τ = 0.5*np.arctan2(normalizedS[:,2], normalizedS[:,1])
 
 		self.ell_params = np.array([S0,self.δ[selection],τ,ε]).T
 
@@ -238,18 +240,18 @@ class stokes_plotter:
 		if errors:
 			for i in range(np.size(data,axis=0)):
 				width = 2*data[i][0]*np.cos(data[i][3])
-				width_err = 2*np.sqrt((np.cos(data[i][3])*data[i][4])**2 + (data[i][0]*np.sin(data[i][3])*data[i][7])**2 - 2*data[i][0]*np.cos(data[i][3])*np.sin(data[i][3])*data[i][4]*data[i][7])
+				width_err = 2*np.sqrt((np.cos(data[i][3])*data[i][4])**2 + (data[i][0]*np.sin(data[i][3])*data[i][7])**2)
 
 				height = 2*data[i][0]*np.sin(data[i][3])
-				height_err = 2*np.sqrt((np.sin(data[i][3])*data[i][4])**2 + (data[i][0]*np.cos(data[i][3])*data[i][7])**2 + 2*data[i][0]*np.cos(data[i][3])*np.sin(data[i][3])*data[i][4]*data[i][7])
+				height_err = 2*np.sqrt((np.sin(data[i][3])*data[i][4])**2 + (data[i][0]*np.cos(data[i][3])*data[i][7])**2)
 
 				angle = data[i][2]
 				angle_err = data[i][6]
 
 				pos = (0,0)
-				pos_err = (0,0)
+				pos_cov = np.array([[0,0],[0,0]])
 
-				r, r_err = Ellipse(pos, width, height, angle, pos_err=pos_err, width_err=width_err, height_err=height_err, angle_err=angle_err)
+				r, r_err = Ellipse(pos, width, height, angle, pos_cov=pos_cov, width_err=width_err, height_err=height_err, angle_err=angle_err)
 				
 				self.frame11.errorbar(r[0],r[1],xerr=r_err[0],yerr=r_err[1], capsize=2, capthick=0.5, elinewidth=1, ecolor='k')
 
@@ -286,8 +288,12 @@ class stokes_plotter:
 
 		show()
 
+
+
+
+
 #function that returns datapoints forming an Ellipse. (patches.Ellipse does not work properly for our purposes)
-def Ellipse(pos, width, height, angle, pos_err=None, width_err=None, height_err=None, angle_err=None):
+def Ellipse(pos, width, height, angle, pos_cov=np.array([[0,0],[0,0]]), width_err=None, height_err=None, angle_err=None):
 	t = np.linspace(0,2*np.pi,100)
 	x = np.array([width/2*np.cos(t),height/2*np.sin(t)])
 
@@ -297,9 +303,9 @@ def Ellipse(pos, width, height, angle, pos_err=None, width_err=None, height_err=
 	x = np.matmul(R,x)
 	x = x + np.array([np.full_like(x[0],pos[0]),np.full_like(x[1],pos[1])])
 
-	if not None in [pos_err, width_err, height_err, angle_err]:
+	if not None in [width_err, height_err, angle_err]:
 
-		σ = np.array([width_err, height_err, angle_err, pos_err[0], pos_err[1]])
+		σ = np.array([width_err, height_err, angle_err, pos_cov[0][0]**0.5, pos_cov[1][1]**0.5])
 		
 		#partials are initiated:
 		#dx/dwidth
@@ -323,8 +329,7 @@ def Ellipse(pos, width, height, angle, pos_err=None, width_err=None, height_err=
 
 		x_var = np.zeros((2, t.size))
 		for i in range(5):
-			for j in range(5):
-				x_var += np.multiply(parts[i]*σ[i], parts[j]*σ[j])
+			x_var += np.multiply(parts[i]*σ[i], parts[i]*σ[i])
 
 		return x, np.sqrt(x_var)
 

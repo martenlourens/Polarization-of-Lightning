@@ -69,8 +69,9 @@ cal = calibrate(timeID,width,verbose=False)
 
 stokes = stokes_params()
 
-
-with open(processed_data_dir(timeID)+"/polarization_data/source_info_2.json", 'r') as f:
+pName = "NL3" #phenomena name
+source_info_loc = processed_data_dir(timeID) + "/polarization_data/Lightning Phenomena/Negative Leader"
+with open(source_info_loc + '/' + "source_info_{}.json".format(pName), 'r') as f:
 	source_info = json.load(f)
 
 
@@ -110,10 +111,19 @@ sorted_snames = list(sorted_snames)
 sorted_snames = [sorted_snames[i] for i in sort_indices]
 Z = Z[sort_indices]
 
+#create empty Z file or flush it
+Z_file = open(source_info_loc + '/' + "{}_data".format(pName) + '/' + "Z", 'w')
+Z_file.write('')
+Z_file.close()
+
+Z_file = open(source_info_loc + '/' + "{}_data".format(pName) + '/' + "Z", 'a')
 for i in range(sort_indices.size):
 	print("{} : {} deg".format(sorted_snames[i],Z[i]))
+	print("{} : {} deg".format(sorted_snames[i],Z[i]), file=Z_file) #also print the results to Z
+Z_file.close()
 
-
+Zlimit = 50
+sorted_snames = [sorted_snames[i] for i in np.where(Z<=Zlimit)[0]]
 
 pbar = tqdm(source_info.keys(), ascii=True, unit_scale=True, dynamic_ncols=True, position=0)
 for ID in pbar:
@@ -123,9 +133,9 @@ for ID in pbar:
 
 	pbar.set_description("Processing pulse {}".format(srcName))
 
-	sIO = save_polarization_data(timeID,srcName)
+	sIO = save_polarization_data(timeID,srcName,alt_loc=source_info_loc + '/' + "{}_data".format(pName))
 
-	pbar1 = tqdm(sorted_snames[:1], leave=False, ascii=True, unit_scale=True, dynamic_ncols=True, position=1) 
+	pbar1 = tqdm(sorted_snames, leave=False, ascii=True, unit_scale=True, dynamic_ncols=True, position=1) 
 	for sname in pbar1: #sorted_snames
 		pbar1.set_description("Processing station {}".format(sname))
 
@@ -170,6 +180,8 @@ for ID in pbar:
 				tqdm.write("Saving polarization data for station {}...".format(sname))
 				sIO.save_S(sname,np.average(sStokesVector,axis=0)[0],np.std(sStokesVector,axis=0,ddof=1)[0])
 				sIO.save_PE(sname,np.average(PEVector,axis=0)[0],np.std(PEVector,axis=0,ddof=1)[0])
+			else:
+				tqdm.write("Polarization data of station {} will not be saved as less than two antennas have received a measurable signal.".format(sname))
 		else:
 			tqdm.write("Polarization data of station {} will not be saved as less than two antennas have received a measurable signal.".format(sname))
 
@@ -177,6 +189,5 @@ for ID in pbar:
 	tqdm.write("Done.")
 
 	#stokes_plot.showPlots(legend=True) #uncomment for plots
-	#break
 
 pbar.close()
