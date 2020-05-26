@@ -113,6 +113,10 @@ def polPlot2D(station_loc, pulses_PE, source_info, ell_scale=2**50, ϕ_shift=Fal
 	ylimits = frame.get_ylim()
 	frame.set_ylim((ylimits[1],ylimits[0]))
 
+	#flip azimuthal axis such that left and right is actually left and right from the station's perspective
+	xlimits = frame.get_xlim()
+	frame.set_xlim((xlimits[1],xlimits[0]))
+
 	#setting up colorbar
 	norm = mpl.colors.Normalize(vmin=vmin*1000, vmax=vmax*1000) #set time in ms
 	divider = make_axes_locatable(frame)
