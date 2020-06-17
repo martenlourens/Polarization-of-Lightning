@@ -69,8 +69,8 @@ cal = calibrate(timeID,width,verbose=False)
 
 stokes = stokes_params()
 
-pName = "NL3" #phenomena name
-source_info_loc = processed_data_dir(timeID) + "/polarization_data/Lightning Phenomena/Negative Leader"
+pName = "KC9" #phenomena name
+source_info_loc = processed_data_dir(timeID) + "/polarization_data/Lightning Phenomena/K changes"
 with open(source_info_loc + '/' + "source_info_{}.json".format(pName), 'r') as f:
 	source_info = json.load(f)
 
@@ -122,22 +122,25 @@ for i in range(sort_indices.size):
 	print("{} : {} deg".format(sorted_snames[i],Z[i]), file=Z_file) #also print the results to Z
 Z_file.close()
 
+"""
 Zlimit = 50
 sorted_snames = [sorted_snames[i] for i in np.where(Z<=Zlimit)[0]]
+"""
 
-pbar = tqdm(source_info.keys(), ascii=True, unit_scale=True, dynamic_ncols=True, position=0)
+pbar = tqdm(['1481042'], ascii=True, unit_scale=True, dynamic_ncols=True, position=0) #source_info.keys()
 for ID in pbar:
-	#stokes_plot = stokes_plotter(plot=['stokes']) #uncomment for plots
-
+	tqdm.write("{}".format(ID))
 	source_XYZT = np.array(source_info[ID]['XYZT']); srcName = int(ID)
 
 	pbar.set_description("Processing pulse {}".format(srcName))
 
-	sIO = save_polarization_data(timeID,srcName,alt_loc=source_info_loc + '/' + "{}_data".format(pName))
+	#sIO = save_polarization_data(timeID,srcName,alt_loc=source_info_loc + '/' + "{}_data".format(pName))
 
-	pbar1 = tqdm(sorted_snames, leave=False, ascii=True, unit_scale=True, dynamic_ncols=True, position=1) 
-	for sname in pbar1: #sorted_snames
+	pbar1 = tqdm(['CS028', 'RS305', 'RS503', 'RS306', 'RS106'], leave=False, ascii=True, unit_scale=True, dynamic_ncols=True, position=1) #sorted_snames
+	for sname in pbar1:
 		pbar1.set_description("Processing station {}".format(sname))
+
+		stokes_plot = stokes_plotter(plot=['stokes']) #uncomment for plots
 
 		sTBB_data = TBB_data[sname]
 		antenna_names_E = sTBB_data.get_antenna_names()[::2]
@@ -169,10 +172,11 @@ for ID in pbar:
 			pol_ell_params = stokes.polarization_ellipse_parameters()
 			PEVector.append(pol_ell_params)
 
-			#stokes_plot.plot_stokes_parameters(S,antenna_names=[antenna_names_E[n],antenna_names_O[n]], width=[t_l,t_r]) #uncomment for plots
+			stokes_plot.plot_stokes_parameters(S,antenna_names=[antenna_names_E[n],antenna_names_O[n]], width=[t_l,t_r]) #uncomment for plots
 
 		pbar2.close()
-
+		tqdm.write("{} : {}".format(sname, len(sStokesVector)))
+		"""
 		if sStokesVector:
 			sStokesVector = np.array(sStokesVector)
 			PEVector = np.array(PEVector)
@@ -184,10 +188,9 @@ for ID in pbar:
 				tqdm.write("Polarization data of station {} will not be saved as less than two antennas have received a measurable signal.".format(sname))
 		else:
 			tqdm.write("Polarization data of station {} will not be saved as less than two antennas have received a measurable signal.".format(sname))
-
+		"""
+		stokes_plot.showPlots(legend=True, sname=sname) #uncomment for plots
 	pbar1.close()
 	tqdm.write("Done.")
-
-	#stokes_plot.showPlots(legend=True) #uncomment for plots
 
 pbar.close()

@@ -55,4 +55,4 @@ cbar2.set_label(label=r"$\epsilon_{err}\ [^{\circ}]$", fontsize=16)
 frame2.grid()
 
 #show()
-fig.savefig("simulated_errors.png", dpi=fig.dpi)
+fig.savefig("simulated_errors.pdf", dpi=fig.dpi, bbox_inches='tight')

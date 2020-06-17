@@ -42,7 +42,7 @@ if __name__ == "__main__":
 	station_names = natural_sort(station_timing_offsets.keys())
 	#station_names = ["CS006"] #for KC9
 	data_folder = processed_data_folder + "/polarization_data/Lightning Phenomena/Positive Leader"
-	pName = "PL2" #phenomena name
+	pName = "PL3" #phenomena name
 
 	with open(data_folder + '/' + "source_info_{}.json".format(pName), 'r') as f:
 		source_info = json.load(f)
@@ -132,15 +132,23 @@ if __name__ == "__main__":
 		polPlot2D(avg_station_loc, circ_pulses_PE, circ_source_info, ell_scale=2**50, ϕ_shift=False, errors=False)
 		"""
 
-		scale = 2**51
+		#uncomment to get info on pulses with a low degree of polarization (i.e. dop <= 0.8)
+		#dopID = []
+		#for pulseID in pulses_PE.keys():
+		#	if pulses_PE[pulseID][1] <= 0.8:
+		#		print(pulses_PE[pulseID][1])
+		#		dopID.append(pulseID)
+		#print(dopID)
+
+		scale = 2**50 #51
 		ϕ_shift = False
 
-		fig = polPlot2D(avg_station_loc, pulses_PE, source_info, ell_scale=scale, ϕ_shift=ϕ_shift, errors=False, save=True)
-		fig.savefig(data_folder + '/' + "{}_data".format(pName) + '/' + "{}_result.png".format(station), dpi=fig.dpi)
+		fig = polPlot2D(avg_station_loc, pulses_PE, source_info, ell_scale=scale, ϕ_shift=ϕ_shift, cmode='dop', errors=False, save=True)
+		fig.savefig(data_folder + '/' + "{}_data".format(pName) + '/' + "{}_result.pdf".format(station), dpi=fig.dpi, bbox_inches='tight')
 		close(fig=fig)
 
-		fig = polPlot2D(avg_station_loc, pulses_PE, source_info, ell_scale=scale, ϕ_shift=ϕ_shift, errors=True, save=True)
-		fig.savefig(data_folder + '/' + "{}_data".format(pName) + '/' + "{}_result_withErrorbars.png".format(station), dpi=fig.dpi)
+		fig = polPlot2D(avg_station_loc, pulses_PE, source_info, ell_scale=scale, ϕ_shift=ϕ_shift, cmode='dop', errors=True, save=True)
+		fig.savefig(data_folder + '/' + "{}_data".format(pName) + '/' + "{}_result_withErrorbars.pdf".format(station), dpi=fig.dpi, bbox_inches='tight')
 		close(fig=fig)
 
 		"""
@@ -174,6 +182,6 @@ if __name__ == "__main__":
 		frame4.set_title(r"$1$",fontsize=16)
 		polPlot2D(avg_station_loc, pulses_PE, source_info, ell_scale=scale, ϕ_shift=False, errors=False, save=True, fig=fig, frame=frame4)
 
-		fig.savefig(data_folder + '/' + "{}_data".format(pName) + '/' + "{}_result_comp.png".format(station), dpi=fig.dpi)
+		fig.savefig(data_folder + '/' + "{}_data".format(pName) + '/' + "{}_result_comp.pdf".format(station), dpi=fig.dpi, bbox_inches='tight')
 		close(fig=fig)
 		"""

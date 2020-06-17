@@ -50,7 +50,7 @@ def E_to_V(E_field):
 #function that plots the simulated pulse
 def plot_simulated_pulse(t, E_field, V, cal_data):
 	fig = figure(figsize=(10,10))
-	subplots_adjust(wspace=0.2, hspace=0.3)
+	subplots_adjust(wspace=0.3, hspace=0.3)
 
 	frame1 = fig.add_subplot(221)
 	frame1.set_title(r"Simulated $\vec{E}$ Field Data", fontsize=11)
@@ -86,6 +86,7 @@ def plot_simulated_pulse(t, E_field, V, cal_data):
 	frame3.grid()
 
 	show()
+	#fig.savefig("simulated_pulse.pdf", dpi=fig.dpi, bbox_inches='tight')
 
 if __name__ == "__main__":
 	N = 40 #number of samples we want
@@ -122,13 +123,14 @@ if __name__ == "__main__":
 	ε_range = np.linspace(-np.pi/4, np.pi/4, 100) #ε can only lie between -45 deg and +45 deg (note: the -45 deg and +45 deg case are not the same (ε expresses the chirality of the polarization ellipse)! However, in these cases τ can't be determined!
 	
 	results = np.empty((0,4))
+	dop = np.array([])
 
 	#running τ before ε ensures τ is the y axis and ε is the x axis
-	pbar0 = tqdm(τ_range, ascii=True, unit_scale=True, dynamic_ncols=True, position=0)
+	pbar0 = tqdm(τ_range, ascii=True, unit_scale=True, dynamic_ncols=True, position=0) #τ_range
 	for τ in pbar0:
-		pbar1 = tqdm(ε_range, leave=False, ascii=True, unit_scale=True, dynamic_ncols=True, position=1)
+		pbar1 = tqdm(ε_range, leave=False, ascii=True, unit_scale=True, dynamic_ncols=True, position=1) #ε_range
 		for ε in pbar1:
-			
+
 			E_field = E(t, ω, τ, ε, δ) #E waves in the azimuthal and zenithal direction
 			V = E_to_V(E_field) #obtain the voltage data obtained by the antennae
 			data_E = V[1]; data_O = V[0] #We assume LBA_OUTER antenna set in which case the Y antenna is the "even" antenna and the X antenna is the "odd" antenna
@@ -198,18 +200,16 @@ if __name__ == "__main__":
 			pol_ell_params.reshape((1, 4))
 			
 			#print the results
-			#print("####	RESULTS	####")
-			#print("τ = {} deg\nε = {} deg\ndop = {}".format(np.rad2deg(pol_ell_params[0][2]), np.rad2deg(pol_ell_params[0][3]), pol_ell_params[0][1]))
+			tqdm.write("####	RESULTS	####")
+			tqdm.write("τ = {} deg\nε = {} deg\ndop = {}".format(np.rad2deg(pol_ell_params[0][2]), np.rad2deg(pol_ell_params[0][3]), pol_ell_params[0][1]))
 
-			#tqdm.write("####	RESULTS	####")
-			#tqdm.write("τ = {} deg\nε = {} deg\ndop = {}".format(np.rad2deg(pol_ell_params[0][2]), np.rad2deg(pol_ell_params[0][3]), pol_ell_params[0][1]))
-
-			tqdm.write("τ = {} & {}\nε = {} & {}".format(np.rad2deg(τ), np.rad2deg(pol_ell_params[0][2]), np.rad2deg(ε), np.rad2deg(pol_ell_params[0][3])))
-			tqdm.write("τ_err = {} rad\nε_err = {} rad".format(np.rad2deg(abs(τ - pol_ell_params[0][2])), np.rad2deg(abs(ε - pol_ell_params[0][3]))))
-			
 			τ_err = abs(τ - pol_ell_params[0][2])
 			ε_err = abs(ε - pol_ell_params[0][3])
+
+			tqdm.write("τ_err = {} deg\nε_err = {} deg".format(np.rad2deg(τ_err), np.rad2deg(ε_err)))
+
 			results = np.append(results, np.array([[τ, ε, τ_err, ε_err]]), axis=0)
+			dop = np.append(dop, pol_ell_params[0][1])
 
 			"""
 			stokes_plot = stokes_plotter(plot=['stokes', 'polarization_ellipse'])
@@ -217,8 +217,9 @@ if __name__ == "__main__":
 			stokes_plot.plot_polarization_ellipse(pol_ell_params)
 			stokes_plot.showPlots(legend=True)
 			"""
-
 		pbar1.close()
 	pbar0.close()
 
-	np.savetxt("simulated_errors.txt", results, delimiter=' ', header="τ ε τ_err ε_err", comments='#')
+	print(np.mean(dop), np.std(dop, ddof=1))
+
+	#np.savetxt("simulated_errors.txt", results, delimiter=' ', header="τ ε τ_err ε_err", comments='#')

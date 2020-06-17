@@ -35,13 +35,15 @@ class stokes_params:
 
 		min_height = np.max(self.S[0])*0.25 #threshold is set to ~25% of the maximum height of a pulse in the dataset
 
-		self.indices, self.peakDict = sg.find_peaks(self.S[0], height=min_height, rel_height=R, width=0, prominence=None)
+		self.indices, self.peakDict = sg.find_peaks(self.S[0], height=min_height, rel_height=R, width=1, prominence=None)
 
 		#sort all results by peak prominence (first entry is most prominent peak)
 		#sortIndices = np.argsort(-self.peakDict['prominences'])[:1] #(temporary feature only most prominent pulse is selected)
 		
-		#filter out "central" peak (-2 is to compensate for the shift due to antenna response calibration)
-		dist_from_center = self.indices-(self.S[0].size//2 - 2)
+		#filter out "central" peak (-2.724 is to compensate for the shift due to antenna response calibration)
+		#shift 2*(sqrt(2)*1.380 + 0.090)/(2.99792458E8)/(5E-9) ~ 2.724 (i.e. twice the distance between the two outer ends of the antenna parallel to the ground)
+		indx_offset = 2*(np.sqrt(2)*1.380 + 0.090)/(2.99792458E8)/self.sampling_period
+		dist_from_center = self.indices-(self.S[0].size//2 - indx_offset)
 
 		try:
 			sortIndices = [np.argmin(np.abs(dist_from_center))]
@@ -49,7 +51,7 @@ class stokes_params:
 			#print("Error [1]: Can't get pulse width!")
 			return 0, 0, 0
 
-		if dist_from_center[sortIndices] >= -1 and dist_from_center[sortIndices] <= 1:
+		if dist_from_center[sortIndices] > -2 and dist_from_center[sortIndices] < 2:
 			pass
 		else:
 			#print("Error [2]: Can't get pulse width!")
@@ -151,31 +153,31 @@ class stokes_plotter:
 		#setup plot canvas
 		if plot is not None:
 			if 'stokes' in plot:
-				fig = figure(figsize=(10,10))
-				fig.tight_layout(pad = 0.5, w_pad = 0.5, h_pad = 0.5)
+				self.fig = figure(figsize=(20,10))
+				self.fig.tight_layout(pad = 0.5, w_pad = 0.5, h_pad = 0.5)
 
-				self.frame01 = fig.add_subplot(2,2,1)
+				self.frame01 = self.fig.add_subplot(2,2,1)
 				self.frame01.grid()
 				self.frame01.set_xlabel(r"$t\ [s]$",fontsize=16)
 				self.frame01.set_ylabel(r"$I$",fontsize=16)
 
-				self.frame02 = fig.add_subplot(2,2,2)
+				self.frame02 = self.fig.add_subplot(2,2,2)
 				self.frame02.grid()
 				self.frame02.set_xlabel(r"$t\ [s]$",fontsize=16)
 				self.frame02.set_ylabel(r"$Q/I$",fontsize=16)
 
-				self.frame03 = fig.add_subplot(2,2,3)
+				self.frame03 = self.fig.add_subplot(2,2,3)
 				self.frame03.grid()
 				self.frame03.set_xlabel(r"$t\ [s]$",fontsize=16)
 				self.frame03.set_ylabel(r"$U/I$",fontsize=16)
 
-				self.frame04 = fig.add_subplot(2,2,4)
+				self.frame04 = self.fig.add_subplot(2,2,4)
 				self.frame04.grid()
 				self.frame04.set_xlabel(r"$t\ [s]$",fontsize=16)
 				self.frame04.set_ylabel(r"$V/I$",fontsize=16)
 			
 			if 'polarization_ellipse' in plot:
-				fig1 = figure(figsize=(10,10))
+				fig1 = figure(figsize=(20,10))
 
 				self.frame11 = fig1.add_subplot(111, aspect='equal')
 				self.frame11.grid()
@@ -278,7 +280,7 @@ class stokes_plotter:
 			VI = SI[3]
 			self.frame12.scatter(QI,UI,VI)
 
-	def showPlots(self,legend=False):
+	def showPlots(self,legend=False, sname=None):
 		if legend:
 			if 'stokes' in self.plot:
 				self.frame01.legend()
@@ -287,6 +289,7 @@ class stokes_plotter:
 				self.frame04.legend()
 
 		show()
+		#self.fig.savefig("1481042_stokes_params_plot_{}.pdf".format(sname), dpi=self.fig.dpi, bbox_inches='tight')
 
 
 

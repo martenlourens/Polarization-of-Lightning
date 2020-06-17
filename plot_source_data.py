@@ -21,9 +21,9 @@ if __name__ == "__main__":
     bad_antennas = "bad_antennas.txt"
     additional_antenna_delays = "ant_delays.txt"
 
-    source_XYZT = np.array([-1729.1945820613234, -3584.8678788563016, 4342.110258968864, 1.112528427433408]); srcName = 1426315
+    #source_XYZT = np.array([-1729.1945820613234, -3584.8678788563016, 4342.110258968864, 1.112528427433408]); srcName = 1426315
 
-    #source_XYZT = np.array([-743.41, -3174.29, 4377.67, 1.1350323478]); srcName = 1477200
+    source_XYZT = np.array([-743.41, -3174.29, 4377.67, 1.1350323478]); srcName = 1477200
     #source_XYZT = np.array([247.86, -3555.45, 4779.61, 1.1051278583]); srcName = 1409503
     #source_XYZT = np.array([-1040.17, -2877.24, 4405.51, 1.1518796563]); srcName = 1515137
     #source_XYZT = np.array([-1594.76, -3307.02, 4339.72, 1.1386715757]); srcName = 1485269
@@ -52,7 +52,7 @@ if __name__ == "__main__":
     
     trace_locator = getTrace_fromLoc( raw_data_files, data_filters, station_timing_offsets )
 
-
+    plt.figure(figsize=(20,10))
     H = 0
     for sname in sorted_station_names:
         input_file = raw_data_files[ sname ]
@@ -66,7 +66,7 @@ if __name__ == "__main__":
         sys.stdout.close()
         
         max_H = 0
-        plt.annotate(sname, (0,H))
+        plt.annotate(sname, (0,H), xytext=(-32,0), textcoords='offset points', fontsize=8, bbox=dict(boxstyle="round", fc="w", ec="0.5", alpha=0.9)) #,
         for an in antenna_names:
             start_sample, total_time_offset, arrival_time, extracted_trace = trace_locator.get_trace_fromLoc(source_XYZT, an, pulse_length, do_remove_RFI=True, do_remove_saturation=True)
     
@@ -79,4 +79,7 @@ if __name__ == "__main__":
             plt.plot([pulse_length/2,pulse_length/2],[H,H+max_H],linestyle='dashed',linewidth=1,color='grey')
             
         H += max_H
-    plt.savefig(processed_data_folder + "/polarization_data/Pulse_Plots/" + "{}.svg".format(srcName),dpi=70)
+    plt.xlabel(r"samples", fontsize=16)
+    plt.yticks([], [])
+    plt.savefig(processed_data_folder + "/polarization_data/Pulse_Plots/" + "{}.pdf".format(srcName), dpi='figure', bbox_inches='tight')
+    #plt.show()

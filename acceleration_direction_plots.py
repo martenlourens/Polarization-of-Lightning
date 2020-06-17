@@ -37,11 +37,33 @@ raw_fpaths = filePaths_by_stationName(timeID)
 TBB_data = {sname : MultiFile_Dal1(fpath, force_metadata_ant_pos=True, polarization_flips=polarization_flips, bad_antennas=bad_antennas,
 additional_ant_delays=additional_antenna_delays, only_complete_pairs=True) for sname, fpath in raw_fpaths.items() if sname in station_timing_offsets}
 
+#function that constructs the unit vector a from its fitted components in spherical coordinates
 def construct_a(*params):
 	x = np.cos(params[0])*np.sin(params[1])
 	y = np.sin(params[0])*np.sin(params[1])
 	z = np.cos(params[1])
 	return np.array([x,y,z])
+
+def forceEqualAspect(frame, shared_axis=None):
+	xlim = frame.get_xlim()
+	ylim = frame.get_ylim()
+	x_w = abs(xlim[1]-xlim[0])
+	y_w = abs(ylim[1]-ylim[0])
+	f = y_w/x_w
+	Δ = abs((x_w-y_w)/2)
+
+	if shared_axis is None:
+		if f < 1:
+			frame.set_ylim((ylim[0]-Δ, ylim[1]+Δ))
+		elif f > 1:
+			frame.set_xlim((xlim[0]-Δ, xlim[1]+Δ))
+
+	if shared_axis == 'x':
+		frame.set_ylim((ylim[0]-Δ, ylim[1]+Δ))
+
+	if shared_axis == 'y':
+		frame.set_xlim((xlim[0]-Δ, xlim[1]+Δ))
+
 
 if __name__ == "__main__":
 	mode = 'stations' #set mode of plot (either 'stations' or 'a')
@@ -88,7 +110,7 @@ if __name__ == "__main__":
 
 	p_loc = np.empty((0,4))
 	a_vec = np.empty((0,3))
-	for pulseID in a_data.keys():
+	for pulseID in a_data.keys(): #change this for plotting separate pulses
 		source_XYZ = source_info[pulseID]['XYZT']
 		p_loc = np.append(p_loc, np.array([source_XYZ]), axis=0)
 		a_vec = np.append(a_vec, np.array([construct_a(*a_data[pulseID]["params"])]), axis=0)
@@ -99,8 +121,8 @@ if __name__ == "__main__":
 		avg_station_XYZ = np.average(antenna_locations, axis=0)
 		s_loc = np.append(s_loc, np.array([avg_station_XYZ]), axis=0)
 
-	p_loc[:, :3] /= 1000
-	s_loc /= 1000
+	p_loc[:, :3] /= 1000 #convert to km
+	s_loc /= 1000 #convert to km
 
 	if mode == 'stations':
 		##########################################
@@ -109,9 +131,12 @@ if __name__ == "__main__":
 		cmap = gen_olaf_cmap()
 		norm = colors.Normalize(p_loc[:, 3].min(), p_loc[:, 3].max())
 
-		fig = figure(figsize=(20,10))
-		gs = fig.add_gridspec(2, 2, width_ratios=(1, 1), height_ratios=(1, 1), wspace=0, hspace=0)
+		fig = figure(figsize=(20,20))
+		gs = fig.add_gridspec(2, 2, wspace=0, hspace=0) #width_ratios=(1, 1), height_ratios=(1, 1),
 		
+		p_scatter_setup = dict(s=10, marker='s', c=p_loc[:, 3], cmap=cmap, norm=norm, alpha=0.75, zorder=2) #alpha = 0.75, edgecolor='k', linewidths=0.01
+		arrow_setup = dict(color='k', units='dots', angles='uv', width=0.5, headlength=0, headaxislength=0, pivot='mid', zorder=1)
+
 		
 		frame_XY = fig.add_subplot(gs[1, 0])
 		frame_XY.set_xlabel(r"Distance West-East [km]", fontsize=16)
@@ -119,23 +144,33 @@ if __name__ == "__main__":
 		
 		frame_XY.scatter(s_loc[:, 0], s_loc[:, 1], s=4, marker='*', color='k')
 		for i, s in enumerate(station_names):
-			frame_XY.annotate(s, (s_loc[:, 0][i], s_loc[:, 1][i]), xytext=(6, 6), textcoords='offset pixels', fontsize=8, bbox=dict(boxstyle="round", fc="w", ec="0.5", alpha=0.9))
+			if Z[i]<=Zlimit:
+				frame_XY.annotate(s, (s_loc[:, 0][i], s_loc[:, 1][i]), xytext=(6, 6), textcoords='offset pixels', fontsize=8, bbox=dict(boxstyle="round", fc='w', ec="0.5", alpha=0.9))
+			else:
+				frame_XY.annotate(s, (s_loc[:, 0][i], s_loc[:, 1][i]), xytext=(6, 6), textcoords='offset pixels', fontsize=8, color='w', bbox=dict(boxstyle="round", fc='k', ec="0.5", alpha=0.9))
 
-		frame_XY.scatter(p_loc[:, 0], p_loc[:, 1], s=4, marker='s', c=p_loc[:, 3], cmap=cmap, norm=norm, alpha=0.75, edgecolor='k', linewidths=0.01)
+		frame_XY.scatter(p_loc[:, 0], p_loc[:, 1], **p_scatter_setup)
+		frame_XY.quiver(*p_loc[:, :2].T, *a_vec[:, :2].T, **arrow_setup)
 		
 		xlimits = frame_XY.get_xlim()
 		ylimits = frame_XY.get_ylim()
 		frame_XY.set_xlim((xlimits[0], xlimits[1]*1.1))
 		frame_XY.set_ylim((ylimits[0], ylimits[1]*1.1))
+		
+		forceEqualAspect(frame_XY)
+
 		frame_XY.grid()
-		
-		
+
+
 		frame_XZ = fig.add_subplot(gs[0, 0], sharex=frame_XY)
 		frame_XZ.set_ylabel(r"Altitude [km]", fontsize=16)
 		setp(frame_XZ.get_xticklabels(), visible=False)
 
-		frame_XZ.scatter(p_loc[:, 0], p_loc[:, 2], s=4, marker='s', c=p_loc[:, 3], cmap=cmap, norm=norm, alpha=0.75, edgecolor='k', linewidths=0.01)
-		
+		frame_XZ.scatter(p_loc[:, 0], p_loc[:, 2], **p_scatter_setup)
+		frame_XZ.quiver(*p_loc[:, ::2].T, *a_vec[:, ::2].T, **arrow_setup)
+
+		forceEqualAspect(frame_XZ, shared_axis='x')
+
 		frame_XZ.grid()
 
 		
@@ -143,37 +178,22 @@ if __name__ == "__main__":
 		frame_ZY.set_xlabel(r"Altitude [km]", fontsize=16)
 		setp(frame_ZY.get_yticklabels(), visible=False)
 
-		frame_ZY.scatter(p_loc[:, 2], p_loc[:, 1], s=4, marker='s', c=p_loc[:, 3], cmap=cmap, norm=norm, alpha=0.75, edgecolor='k', linewidths=0.01)
+		frame_ZY.scatter(p_loc[:, 2], p_loc[:, 1], **p_scatter_setup)
+		frame_ZY.quiver(*p_loc[:, -2:-4:-1].T, *a_vec[:, -1:-3:-1].T, **arrow_setup)
 		
+		forceEqualAspect(frame_ZY, shared_axis='y')
+
 		frame_ZY.grid()
+
 
 		divider = make_axes_locatable(frame_ZY)
 		cax = divider.append_axes("right", size="2%", pad=0.03)
 		cbar = fig.colorbar(cm.ScalarMappable(norm=colors.Normalize(p_loc[:, 3].min()*1E3, p_loc[:, 3].max()*1E3), cmap=cmap), cax=cax)
 		cbar.set_label(label=r"$t\ [ms]$",fontsize=16)
 
-		fig.savefig(data_folder + '/' + "{}_data".format(pName) + '/' + "stations_versus_{}_plot.png".format(pName), dpi=fig.dpi)
+		#extent = frame_XY.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
+		fig.savefig(data_folder + '/' + "{}_data".format(pName) + '/' + "stations_versus_{}_plot.pdf".format(pName), dpi=fig.dpi, bbox_inches='tight') #extent
 		#show()
-
-	def forceEqualAspect(frame, shared_axis=None):
-		xlim = frame.get_xlim()
-		ylim = frame.get_ylim()
-		x_w = abs(xlim[1]-xlim[0])
-		y_w = abs(ylim[1]-ylim[0])
-		f = y_w/x_w
-		Δ = abs((x_w-y_w)/2)
-
-		if shared_axis is None:
-			if f < 1:
-				frame.set_ylim((ylim[0]-Δ, ylim[1]+Δ))
-			elif f > 1:
-				frame.set_xlim((xlim[0]-Δ, xlim[1]+Δ))
-
-		if shared_axis == 'x':
-			frame.set_ylim((ylim[0]-Δ, ylim[1]+Δ))
-
-		if shared_axis == 'y':
-			frame.set_xlim((xlim[0]-Δ, xlim[1]+Δ))
 
 	if mode == 'a':
 		##########################################
@@ -182,17 +202,20 @@ if __name__ == "__main__":
 		cmap = gen_olaf_cmap()
 		norm = colors.Normalize(p_loc[:, 3].min(), p_loc[:, 3].max())
 
-		fig = figure(figsize=(10,10))
+		fig = figure(figsize=(20,20))
 		gs = fig.add_gridspec(2, 2, wspace=0, hspace=0)
-		
-		
+				
+		arrow_setup = dict(color='k', units='dots', angles='uv', width=0.5, headlength=0, headaxislength=0, pivot='mid', zorder=1)
+		scatter_setup = dict(s=7.5, marker='s', c=p_loc[:, 3], cmap=cmap, norm=norm, alpha=0.75, zorder=2) #edgecolor='k', linewidths=0.3
+
+
 		frame_XY = fig.add_subplot(gs[1, 0])
 		frame_XY.set_xlabel(r"Distance West-East [km]", fontsize=16)
 		frame_XY.set_ylabel(r"Distance South-North [km]", fontsize=16)
 
-		frame_XY.scatter(p_loc[:, 0], p_loc[:, 1], s=4, marker='s', c=p_loc[:, 3], cmap=cmap, norm=norm, alpha=0.75, edgecolor='k', linewidths=0.01)
+		frame_XY.scatter(p_loc[:, 0], p_loc[:, 1], **scatter_setup)
 
-		frame_XY.quiver(*p_loc[:, :2].T, *a_vec[:, :2].T, scale_units='xy', angles='uv', width=0.001, headwidth=10, headlength=10)
+		frame_XY.quiver(*p_loc[:, :2].T, *a_vec[:, :2].T, **arrow_setup)
 
 		forceEqualAspect(frame_XY)
 
@@ -203,9 +226,9 @@ if __name__ == "__main__":
 		frame_XZ.set_ylabel(r"Altitude [km]", fontsize=16)
 		setp(frame_XZ.get_xticklabels(), visible=False)
 
-		frame_XZ.scatter(p_loc[:, 0], p_loc[:, 2], s=4, marker='s', c=p_loc[:, 3], cmap=cmap, norm=norm, alpha=0.75, edgecolor='k', linewidths=0.01)
+		frame_XZ.scatter(p_loc[:, 0], p_loc[:, 2], **scatter_setup)
 
-		frame_XZ.quiver(*p_loc[:, ::2].T, *a_vec[:, ::2].T, scale_units='xy', angles='uv', width=0.001, headwidth=10, headlength=10)
+		frame_XZ.quiver(*p_loc[:, ::2].T, *a_vec[:, ::2].T, **arrow_setup)
 		
 		forceEqualAspect(frame_XZ, shared_axis='x')
 
@@ -216,9 +239,9 @@ if __name__ == "__main__":
 		frame_ZY.set_xlabel(r"Altitude [km]", fontsize=16)
 		setp(frame_ZY.get_yticklabels(), visible=False)
 
-		frame_ZY.scatter(p_loc[:, 2], p_loc[:, 1], s=4, marker='s', c=p_loc[:, 3], cmap=cmap, norm=norm, alpha=0.75, edgecolor='k', linewidths=0.01)
+		frame_ZY.scatter(p_loc[:, 2], p_loc[:, 1], **scatter_setup)
 
-		frame_ZY.quiver(*p_loc[:, -2:-4:-1].T, *a_vec[:, -1:-3:-1].T, scale_units='xy', angles='uv', width=0.001, headwidth=10, headlength=10)
+		frame_ZY.quiver(*p_loc[:, -2:-4:-1].T, *a_vec[:, -1:-3:-1].T, **arrow_setup)
 
 		forceEqualAspect(frame_ZY, shared_axis='y')
 
@@ -229,5 +252,5 @@ if __name__ == "__main__":
 		cbar = fig.colorbar(cm.ScalarMappable(norm=colors.Normalize(p_loc[:, 3].min()*1E3, p_loc[:, 3].max()*1E3), cmap=cmap), cax=cax)
 		cbar.set_label(label=r"$t\ [ms]$",fontsize=16)
 
-		fig.savefig(data_folder + '/' + "{}_data".format(pName) + '/' + "a_vectors_plot_{}.png".format(pName), dpi=fig.dpi)
+		fig.savefig(data_folder + '/' + "{}_data".format(pName) + '/' + "a_vectors_plot_{}.pdf".format(pName), dpi=fig.dpi, bbox_inches='tight')
 		#show()

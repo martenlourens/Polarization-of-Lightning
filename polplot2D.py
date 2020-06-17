@@ -11,7 +11,7 @@ from LoLIM.main_plotter import gen_olaf_cmap
 
 
 
-def polPlot2D(station_loc, pulses_PE, source_info, ell_scale=2**50, ϕ_shift=False, cmap=None, errors=False, save=False, fig=None, frame=None):
+def polPlot2D(station_loc, pulses_PE, source_info, ell_scale=2**50, ϕ_shift=False, cmap=None, cmode='time', errors=False, save=False, fig=None, frame=None):
 	if fig is None:
 		fig = figure(figsize=(20,10),dpi=108) #Az : [-90,90] and Z : [0:90] => 2:1 ratio ensures we fill canvas properly
 		frame = fig.add_subplot(111, aspect='equal') #equal aspect ensures correct direction of polarization ellipse!
@@ -19,12 +19,18 @@ def polPlot2D(station_loc, pulses_PE, source_info, ell_scale=2**50, ϕ_shift=Fal
 	#setting up colormap
 	if cmap is None:
 		cmap = gen_olaf_cmap()
+
 	T = np.array([])
-	for pulseID in pulses_PE.keys():
-		T = np.append(T,source_info[pulseID]['XYZT'][3])
+	if cmode == 'time':
+		for pulseID in pulses_PE.keys():
+			T = np.append(T, source_info[pulseID]['XYZT'][3])
+	elif cmode == 'dop':
+		for pulseID in pulses_PE.keys():
+			T = np.append(T, pulses_PE[pulseID][1])
 	vmin = np.min(T)
 	vmax = np.max(T)
 	T = 1/(vmax-vmin)*(T-vmin) #normalize T
+
 
 
 	for i, pulseID in enumerate(pulses_PE.keys()):
@@ -118,15 +124,22 @@ def polPlot2D(station_loc, pulses_PE, source_info, ell_scale=2**50, ϕ_shift=Fal
 	frame.set_xlim((xlimits[1],xlimits[0]))
 
 	#setting up colorbar
-	norm = mpl.colors.Normalize(vmin=vmin*1000, vmax=vmax*1000) #set time in ms
 	divider = make_axes_locatable(frame)
-	cax = divider.append_axes("right", size="1%", pad=0.03)
-	cbar = fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=cmap), cax=cax)
+	cax = divider.append_axes("right", size="3%", pad=0.03)
+
+	if cmode == 'time':
+		norm = mpl.colors.Normalize(vmin=vmin*1000, vmax=vmax*1000) #set time in ms
+		cbar = fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=cmap), cax=cax)
+		cbar.set_label(label=r"$t\ [ms]$",fontsize=16)
+	elif cmode == 'dop':
+		norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+		cbar = fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=cmap), cax=cax)
+		cbar.set_label(label=r"$\delta$",fontsize=16)
+
 
 	#set axis labels
 	frame.set_xlabel(r"$\phi\ [^\circ]$", fontsize=16)
 	frame.set_ylabel(r"$\theta_z\ [^\circ]$", fontsize=16)
-	cbar.set_label(label=r"$t\ [ms]$",fontsize=16)
 	
 	frame.grid()
 

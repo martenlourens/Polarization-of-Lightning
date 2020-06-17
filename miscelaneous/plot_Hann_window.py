@@ -8,4 +8,5 @@ window = half_hann_window(1000, half_percent=0.1)
 
 plt.plot(window,'k')
 plt.grid()
+#plt.savefig("Tukey_Window.pdf", dpi='figure', bbox_inches='tight')
 plt.show()
