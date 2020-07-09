@@ -115,7 +115,7 @@ def plot_chisq_variation(x, y, yerr, dof, rchi2, c, cmode='ε', Zlimit=None, dop
 
 if __name__ == "__main__":
 	data_folder = processed_data_folder + "/polarization_data/Lightning Phenomena/K changes"
-	pName = "KC9" #phenomena name
+	pName = "KC13" #phenomena name
 
 	with open(data_folder + '/' + "source_info_{}.json".format(pName), 'r') as f:
 		source_info = json.load(f)
@@ -167,10 +167,11 @@ if __name__ == "__main__":
 			if station in df.index:
 				if df.loc[station]['δ'] <= 0.8:
 					continue
-				epsilon = np.append(epsilon, np.rad2deg(df.loc[station]['ε']))
-		avg_epsilon = np.mean(epsilon)
-		std_epsilon = 1/np.sqrt(epsilon.size)*np.std(epsilon, ddof=1)
+				#epsilon = np.append(epsilon, np.rad2deg(df.loc[station]['ε']))
+		#avg_epsilon = np.mean(epsilon)
+		#std_epsilon = 1/np.sqrt(epsilon.size)*np.std(epsilon, ddof=1)
 
+		"""
 		case1 = avg_epsilon + std_epsilon >= 0 and avg_epsilon <= 0
 		case2 = avg_epsilon - std_epsilon <= 0 and avg_epsilon >= 0
 
@@ -179,12 +180,12 @@ if __name__ == "__main__":
 			tqdm.write("{} +- {} deg".format(avg_epsilon, std_epsilon))
 		else:
 			continue
-
-
 		"""
+
+
 		station_names = station_names[constrain_indices]
 		Z = Z[constrain_indices]
-		"""
+		
 
 
 		del_indices = []
@@ -222,15 +223,15 @@ if __name__ == "__main__":
 		
 		#plot with ε cmap		
 		fig = plot_chisq_variation((station_names, Z), (χ2, absdev), absdev_err, a_data[pulseID]['dof'], a_data[pulseID]['rchi2_min'], ε, cmode='ε', Zlimit=Zlimit, save=True)
-		#fig.savefig(data_folder + '/' + "{}_data".format(pName) + '/' + "chisq_plots" + '/' + "{}_chisq_scatter_epsilon.pdf".format(pulseID), dpi=fig.dpi, bbox_inches='tight')
-		fig.savefig(data_folder + '/' + "{}_data".format(pName) + '/' + "chisq_variation_above_Zlim" + '/' + "{}_chisq_scatter_epsilon.pdf".format(pulseID), dpi=fig.dpi, bbox_inches='tight')
+		fig.savefig(data_folder + '/' + "{}_data".format(pName) + '/' + "chisq_plots" + '/' + "{}_chisq_scatter_epsilon.pdf".format(pulseID), dpi=fig.dpi, bbox_inches='tight')
+		#fig.savefig(data_folder + '/' + "{}_data".format(pName) + '/' + "chisq_variation_above_Zlim" + '/' + "{}_chisq_scatter_epsilon.pdf".format(pulseID), dpi=fig.dpi, bbox_inches='tight')
 		#show()
 		close(fig)
 
 		#plot with dop cmap
 		fig = plot_chisq_variation((station_names, Z), (χ2, absdev), absdev_err, a_data[pulseID]['dof'], a_data[pulseID]['rchi2_min'], dop, cmode='dop', Zlimit=Zlimit, save=True)
-		#fig.savefig(data_folder + '/' + "{}_data".format(pName) + '/' + "chisq_plots" + '/' + "{}_chisq_scatter_dop.pdf".format(pulseID), dpi=fig.dpi, bbox_inches='tight')
-		fig.savefig(data_folder + '/' + "{}_data".format(pName) + '/' + "chisq_variation_above_Zlim" + '/' + "{}_chisq_scatter_dop.pdf".format(pulseID), dpi=fig.dpi, bbox_inches='tight')
+		fig.savefig(data_folder + '/' + "{}_data".format(pName) + '/' + "chisq_plots" + '/' + "{}_chisq_scatter_dop.pdf".format(pulseID), dpi=fig.dpi, bbox_inches='tight')
+		#fig.savefig(data_folder + '/' + "{}_data".format(pName) + '/' + "chisq_variation_above_Zlim" + '/' + "{}_chisq_scatter_dop.pdf".format(pulseID), dpi=fig.dpi, bbox_inches='tight')
 		#show()
 		close(fig)
 

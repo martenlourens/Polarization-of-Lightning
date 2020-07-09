@@ -66,12 +66,12 @@ def forceEqualAspect(frame, shared_axis=None):
 
 
 if __name__ == "__main__":
-	mode = 'stations' #set mode of plot (either 'stations' or 'a')
-	#mode = 'a'
+	#mode = 'stations' #set mode of plot (either 'stations' or 'a')
+	mode = 'a'
 
 	station_names = natural_sort(station_timing_offsets.keys())
 	data_folder = processed_data_folder + "/polarization_data/Lightning Phenomena/K changes"
-	pName = "KC9" #phenomena name
+	pName = "KC13" #phenomena name
 
 	with open(data_folder + "/source_info_" + pName + ".json", 'r') as f:
 		source_info = json.load(f)

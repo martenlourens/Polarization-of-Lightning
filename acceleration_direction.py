@@ -89,8 +89,8 @@ def residuals(p, data):
 
 if __name__ == "__main__":
 	#station_names = natural_sort(station_timing_offsets.keys())
-	data_folder = processed_data_folder + "/polarization_data/Lightning Phenomena/Positive Leader"
-	pName = "PL3" #phenomena name
+	data_folder = processed_data_folder + "/polarization_data/Lightning Phenomena/K changes"
+	pName = "KC13" #phenomena name
 	Zlimit = 50 #max zenith angle for which antenna model should hold!
 	δlimit = 0.8 #lower limit for the degree of polarization (pulses below this limit are observed to have large errorbars due to local interference or pulses are mixed together in time)
 

@@ -40,9 +40,9 @@ additional_ant_delays=additional_antenna_delays, only_complete_pairs=True) for s
 
 if __name__ == "__main__":
 	station_names = natural_sort(station_timing_offsets.keys())
-	#station_names = ["CS006"] #for KC9
-	data_folder = processed_data_folder + "/polarization_data/Lightning Phenomena/Positive Leader"
-	pName = "PL3" #phenomena name
+	station_names = ["CS024"]
+	data_folder = processed_data_folder + "/polarization_data/Lightning Phenomena/K changes"
+	pName = "KC13" #phenomena name
 
 	with open(data_folder + '/' + "source_info_{}.json".format(pName), 'r') as f:
 		source_info = json.load(f)
@@ -140,7 +140,7 @@ if __name__ == "__main__":
 		#		dopID.append(pulseID)
 		#print(dopID)
 
-		scale = 2**50 #51
+		scale = 2**52 #51
 		ϕ_shift = False
 
 		fig = polPlot2D(avg_station_loc, pulses_PE, source_info, ell_scale=scale, ϕ_shift=ϕ_shift, cmode='dop', errors=False, save=True)

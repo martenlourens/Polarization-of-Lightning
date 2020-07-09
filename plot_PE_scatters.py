@@ -6,7 +6,21 @@ from scipy.optimize import root_scalar
 import json
 import pickle
 from matplotlib.pyplot import figure, show, close
-from matplotlib import colors, cm
+from matplotlib import colors, cm, transforms
+
+def get_twin_bbox(frames):
+	points0 = frames[0].get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted()).get_points()
+	points1 = frames[1].get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted()).get_points()
+
+	x0 = min(points0[0,0], points1[0,0])
+	x1 = max(points1[1,0], points1[1,0])
+	y0 = min(points0[0,1], points1[0,1])
+	y1 = max(points0[1,1], points1[1,1])
+
+	points = np.array([[x0, y0],[x1, y1]])
+
+	return transforms.Bbox(points)
+
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import seaborn as sns
 
@@ -19,7 +33,7 @@ from stokes_utils import zenith_to_src
 from stokesIO import read_polarization_data
 
 
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 
 timeID = "D20190424T210306.154Z"
@@ -178,6 +192,7 @@ def find_hist_errorbars(count, p=1-1/3):
 def plot_PE_histograms(pulses_PE, station, Z, save=False):
 	fig = figure(figsize=(20,20))
 	gs = fig.add_gridspec(2, 2, wspace=0.2, hspace=0.2)
+	frames = []
 
 	bins = 35
 	bar_setup = dict(color="yellowgreen", align="edge", edgecolor='k', linewidth=1, zorder=0)
@@ -188,6 +203,7 @@ def plot_PE_histograms(pulses_PE, station, Z, save=False):
 
 
 	frame1 = fig.add_subplot(gs[0])
+	frames.append(frame1)
 	
 	#τ unweighted hist with errorbars
 	bin_counts, bin_edges = np.histogram(pulses_PE['τ'], bins=bins, range=(-90, 90))
@@ -196,6 +212,8 @@ def plot_PE_histograms(pulses_PE, station, Z, save=False):
 	
 	#τ weighted histogram
 	frame1_twin = frame1.twinx()
+	frames.append(frame1_twin)
+
 	weights_τ = capped_weights(np.array(pulses_PE["σ_τ"]))
 	frame1_twin.hist(pulses_PE['τ'], weights=weights_τ, bins=bins, range=(-90, 90), **hist_setup)
 	frame1_twin.set_ylabel(r"weighted hist", fontsize=16, color="firebrick")
@@ -212,6 +230,7 @@ def plot_PE_histograms(pulses_PE, station, Z, save=False):
 
 
 	frame2 = fig.add_subplot(gs[1])
+	frames.append(frame2)
 	
 	#ε unweighted hist with errorbars
 	bin_counts, bin_edges = np.histogram(pulses_PE['ε'], bins=bins, range=(-45, 45))
@@ -220,6 +239,8 @@ def plot_PE_histograms(pulses_PE, station, Z, save=False):
 
 	#ε weighted histogram
 	frame2_twin = frame2.twinx()
+	frames.append(frame2_twin)
+
 	weights_ε = capped_weights(np.array(pulses_PE["σ_ε"]))
 	frame2_twin.hist(pulses_PE['ε'], weights=weights_ε, bins=bins, range=(-45, 45), **hist_setup)
 	frame2_twin.set_ylabel(r"weighted hist", fontsize=16, color="firebrick")
@@ -235,7 +256,8 @@ def plot_PE_histograms(pulses_PE, station, Z, save=False):
 
 
 	frame3 = fig.add_subplot(gs[2])
-	
+	frames.append(frame3)
+
 	#δ unweighted histogram with errorbars
 	bin_counts, bin_edges = np.histogram(pulses_PE['δ'], bins=bins, range=(0.8, 1))
 	#errorbars = np.array([find_hist_errorbars(count) for count in bin_counts]).T
@@ -243,6 +265,8 @@ def plot_PE_histograms(pulses_PE, station, Z, save=False):
 
 	#δ weighted histogram
 	frame3_twin = frame3.twinx()
+	frames.append(frame3_twin)
+
 	weights_δ = capped_weights(np.array(pulses_PE["σ_δ"]))
 	frame3_twin.hist(pulses_PE['δ'], weights=weights_δ, bins=bins, range=(0.8, 1), **hist_setup)
 	frame3_twin.set_ylabel(r"weighted hist", fontsize=16, color="firebrick")
@@ -259,7 +283,7 @@ def plot_PE_histograms(pulses_PE, station, Z, save=False):
 	frame3.grid()
 
 	if save:
-		return fig, (frame1, frame2, frame3)
+		return fig, frames
 	else:
 		show()
 
@@ -281,7 +305,7 @@ def weighted_KDE(x, μ, σ, density=False):
 if __name__ == "__main__":
 	station_names = natural_sort(station_timing_offsets.keys())
 	data_folder = processed_data_folder + "/polarization_data/Lightning Phenomena/K changes"
-	pName = "KC9" #phenomena name
+	pName = "KC13" #phenomena name
 
 	with open(data_folder + '/' + "source_info_{}.json".format(pName), 'r') as f:
 		source_info = json.load(f)
@@ -359,9 +383,9 @@ if __name__ == "__main__":
 
 	#N1 = 0
 	#N2 = 0
-	#station_names = ['CS001']
+	#station_names = ['RS205']
 	for i, station in enumerate(station_names):
-		print(station)
+		#print(station)
 		pulses_PE = {'δ' : [], "σ_δ" : [], 'τ' : [], "σ_τ" : [], 'ε' : [], "σ_ε" : []}
 		
 		for pulseID in pulseIDs:
@@ -392,7 +416,8 @@ if __name__ == "__main__":
 		close(fig)
 
 		fig, frames = plot_PE_histograms(pulses_PE, station, Z[i], save=True)
-		#extent = frames[1].get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
+		#extent = frames[3].get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
+		#extent = get_twin_bbox(frames[0:2])
 		fig.savefig(data_folder + '/' + "{}_data".format(pName) + '/' + "PE_scatters" + '/' + "{}_PE_hist.pdf".format(station), dpi=fig.dpi, bbox_inches='tight') #extent
 		#show()
 		close(fig)
@@ -423,9 +448,8 @@ if __name__ == "__main__":
 		s_avg_ε = np.sqrt(partition**(-1))
 		#print(avg_ε, s_avg_ε)
 
-		#DEPRECATED!!!
-		#avg_ε = np.mean(np.array(pulses_PE['ε']))
-		#s_avg_ε = 1/np.sqrt(len(pulses_PE['ε']))*np.std(np.array(pulses_PE['ε']), ddof=1)
+		avg_ε = np.mean(np.array(pulses_PE['ε']))
+		s_avg_ε = 1/np.sqrt(len(pulses_PE['ε']))*np.std(np.array(pulses_PE['ε']), ddof=1)
 
 		xtick_labels.append(station)
 		frame4.errorbar([station], [avg_ε], yerr=[s_avg_ε], **errorbar_setup)

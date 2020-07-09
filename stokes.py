@@ -280,7 +280,7 @@ class stokes_plotter:
 			VI = SI[3]
 			self.frame12.scatter(QI,UI,VI)
 
-	def showPlots(self,legend=False, sname=None):
+	def showPlots(self, legend=False, sname=None):
 		if legend:
 			if 'stokes' in self.plot:
 				self.frame01.legend()
@@ -289,7 +289,8 @@ class stokes_plotter:
 				self.frame04.legend()
 
 		show()
-		#self.fig.savefig("1481042_stokes_params_plot_{}.pdf".format(sname), dpi=self.fig.dpi, bbox_inches='tight')
+		#extent = self.frame01.get_tightbbox(self.fig.canvas.get_renderer()).transformed(self.fig.dpi_scale_trans.inverted())
+		#self.fig.savefig("1477200_all_stations_I.pdf", dpi=self.fig.dpi, bbox_inches=extent) #extent
 
 
 
